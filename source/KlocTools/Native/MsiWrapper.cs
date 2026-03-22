@@ -550,6 +550,19 @@ namespace Klocman.Native
         [DllImport("msi.dll", CharSet = CharSet.Unicode)]
         public static extern int MsiQueryComponentState(string szProductCode, string szUserSid, [MarshalAs(UnmanagedType.I4)] MSIINSTALLCONTEXT dwContext, string szComponent, out INSTALLSTATE pdwState);
 
+        /// <summary>
+        /// Suppresses error dialogs from the system. Used to prevent "network resource unavailable" dialogs from MSI API calls.
+        /// Returns the previous error mode flags.
+        /// </summary>
+        [DllImport("kernel32.dll", SetLastError = false)]
+        public static extern int SetErrorMode(int uMode);
+
+        /// <summary>
+        /// Error mode flag: display critical-error-handler message box (0x0001).
+        /// Used with SetErrorMode to suppress error dialogs.
+        /// </summary>
+        public const int SEM_FAILCRITICALERRORS = 0x0001;
+
         public sealed class INSTALLPROPERTY
         {
             // Product info attributes: advertised information

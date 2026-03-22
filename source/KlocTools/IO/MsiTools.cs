@@ -119,12 +119,23 @@ namespace Klocman.IO
             {
                 var lpPathBuf = new StringBuilder(512);
                 var pcchPathBuf = lpPathBuf.Capacity;
-                var state = MsiWrapper.MsiGetComponentPath(product, component, lpPathBuf, ref pcchPathBuf);
-                if (state == MsiWrapper.INSTALLSTATE.INSTALLSTATE_LOCAL) // TODO also include source?
+                
+                // Suppress error dialogs from MSI API calls to prevent "network resource unavailable" dialogs
+                // that can occur when components were installed from network drives
+                var previousErrorMode = MsiWrapper.SetErrorMode(MsiWrapper.SEM_FAILCRITICALERRORS);
+                try
                 {
-                    value = lpPathBuf.ToString();
-                    ComponentPathLookup[component] = value;
-                    return value;
+                    var state = MsiWrapper.MsiGetComponentPath(product, component, lpPathBuf, ref pcchPathBuf);
+                    if (state == MsiWrapper.INSTALLSTATE.INSTALLSTATE_LOCAL) // TODO also include source?
+                    {
+                        value = lpPathBuf.ToString();
+                        ComponentPathLookup[component] = value;
+                        return value;
+                    }
+                }
+                finally
+                {
+                    MsiWrapper.SetErrorMode(previousErrorMode);
                 }
             }
 
@@ -221,8 +232,17 @@ namespace Klocman.IO
             static string GetProductCode(string component)
             {
                 var lpBuf39 = new StringBuilder(40);
-                var ret = MsiWrapper.MsiGetProductCode(component, lpBuf39);
-                return ret != 0 ? null : lpBuf39.ToString();
+                
+                var previousErrorMode = MsiWrapper.SetErrorMode(MsiWrapper.SEM_FAILCRITICALERRORS);
+                try
+                {
+                    var ret = MsiWrapper.MsiGetProductCode(component, lpBuf39);
+                    return ret != 0 ? null : lpBuf39.ToString();
+                }
+                finally
+                {
+                    MsiWrapper.SetErrorMode(previousErrorMode);
+                }
             }
         }
 

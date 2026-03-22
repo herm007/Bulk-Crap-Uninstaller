@@ -120,9 +120,9 @@ namespace Klocman.IO
                 var lpPathBuf = new StringBuilder(512);
                 var pcchPathBuf = lpPathBuf.Capacity;
                 
-                // Suppress error dialogs from MSI API calls to prevent "network resource unavailable" dialogs
+                // Suppress error dialogs on this thread to prevent "network resource unavailable" dialogs
                 // that can occur when components were installed from network drives
-                var previousErrorMode = MsiWrapper.SetErrorMode(MsiWrapper.SEM_FAILCRITICALERRORS);
+                MsiWrapper.SetThreadErrorMode(MsiWrapper.SEM_FAILCRITICALERRORS, out uint previousErrorMode);
                 try
                 {
                     var state = MsiWrapper.MsiGetComponentPath(product, component, lpPathBuf, ref pcchPathBuf);
@@ -135,7 +135,7 @@ namespace Klocman.IO
                 }
                 finally
                 {
-                    MsiWrapper.SetErrorMode(previousErrorMode);
+                    MsiWrapper.SetThreadErrorMode(previousErrorMode, out _);
                 }
             }
 
@@ -232,8 +232,7 @@ namespace Klocman.IO
             static string GetProductCode(string component)
             {
                 var lpBuf39 = new StringBuilder(40);
-                
-                var previousErrorMode = MsiWrapper.SetErrorMode(MsiWrapper.SEM_FAILCRITICALERRORS);
+                MsiWrapper.SetThreadErrorMode(MsiWrapper.SEM_FAILCRITICALERRORS, out uint previousErrorMode);
                 try
                 {
                     var ret = MsiWrapper.MsiGetProductCode(component, lpBuf39);
@@ -241,7 +240,7 @@ namespace Klocman.IO
                 }
                 finally
                 {
-                    MsiWrapper.SetErrorMode(previousErrorMode);
+                    MsiWrapper.SetThreadErrorMode(previousErrorMode, out _);
                 }
             }
         }

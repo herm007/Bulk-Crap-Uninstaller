@@ -558,10 +558,18 @@ namespace Klocman.Native
         public static extern int SetErrorMode(int uMode);
 
         /// <summary>
-        /// Error mode flag: display critical-error-handler message box (0x0001).
-        /// Used with SetErrorMode to suppress error dialogs.
+        /// Sets the error mode for the calling thread only, avoiding process-wide side-effects.
+        /// Returns true on success and stores the previous flags in <paramref name="lpOldMode"/>.
+        /// Prefer this over <see cref="SetErrorMode"/> so that only the current thread is affected.
         /// </summary>
-        public const int SEM_FAILCRITICALERRORS = 0x0001;
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetThreadErrorMode(uint dwNewMode, out uint lpOldMode);
+
+        /// <summary>
+        /// Error mode flag: display critical-error-handler message box (0x0001).
+        /// Used with SetErrorMode / SetThreadErrorMode to suppress error dialogs.
+        /// </summary>
+        public const uint SEM_FAILCRITICALERRORS = 0x0001;
 
         public sealed class INSTALLPROPERTY
         {

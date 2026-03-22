@@ -216,9 +216,20 @@ namespace Klocman.IO
 
                 // TODO This is slow, on the order of ~8 seconds (4 with AsParallel) on an SSD. It could use caching of GetProductCode and _componentPathLookup
                 // 20% of time is spent in GetAllComponents, 80% in GetProductCode
-                _componentLookup = GetAllComponents()
-                                   .ToList().AsParallel() // Cuts total time by about 45%, ToList is critical
-                                   .ToLookup(GetProductCode, StringComparer.OrdinalIgnoreCase);
+                // Suppress error dialogs process-wide before the parallel MSI lookups, then restore.
+                // This is done here rather than inside GetProductCode to avoid a race condition
+                // where concurrent threads repeatedly set and restore the process-wide error mode.
+                var previousErrorMode = MsiWrapper.SetErrorMode(MsiWrapper.SEM_FAILCRITICALERRORS);
+                try
+                {
+                    _componentLookup = GetAllComponents()
+                                       .ToList().AsParallel() // Cuts total time by about 45%, ToList is critical
+                                       .ToLookup(GetProductCode, StringComparer.OrdinalIgnoreCase);
+                }
+                finally
+                {
+                    MsiWrapper.SetErrorMode(previousErrorMode);
+                }
 
                 _reverseComponentLookup = _componentLookup
                                           .Where(x => !string.IsNullOrEmpty(x.Key))
@@ -232,17 +243,8 @@ namespace Klocman.IO
             static string GetProductCode(string component)
             {
                 var lpBuf39 = new StringBuilder(40);
-                
-                var previousErrorMode = MsiWrapper.SetErrorMode(MsiWrapper.SEM_FAILCRITICALERRORS);
-                try
-                {
-                    var ret = MsiWrapper.MsiGetProductCode(component, lpBuf39);
-                    return ret != 0 ? null : lpBuf39.ToString();
-                }
-                finally
-                {
-                    MsiWrapper.SetErrorMode(previousErrorMode);
-                }
+                var ret = MsiWrapper.MsiGetProductCode(component, lpBuf39);
+                return ret != 0 ? null : lpBuf39.ToString();
             }
         }
 
